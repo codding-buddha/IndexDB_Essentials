@@ -1,2 +1,2 @@
-# IndexDB_Essentials
-Working with IndexDB
+# IndexDB
+How to, recipies and samples for IndexDB 
