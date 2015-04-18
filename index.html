@@ -20,9 +20,10 @@
         <script>
             document.addEventListener('DOMContentLoaded', function () {
                 var dbName = "custDB";
-                var ver = 4;
-                var store = "customer1";
-                db.open(dbName, ver, store, [{name: "lastName", contraint: {unique: true}}]);
+                var ver = 5;
+                var store = "cust";
+                
+                db.open(dbName, ver, store, 'lastName' ,[{name: "lastName", contraint: {unique: true}}]);
                 document.getElementById("indexdb-support").innerHTML = window.isIndexDBSupported ? "Yup" : "Nope";
                 if (isIndexDBSupported) {
                     document.getElementById("add").onclick = function (e) {

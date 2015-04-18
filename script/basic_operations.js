@@ -2,7 +2,7 @@ window.db = window.db || {};
 (function (exports) {
     'use strict';
     var dbStore;
-    exports.open = function (dbName, version, store, indexes, onOpen) {
+    exports.open = function (dbName, version, store, keyPath, indexes, onOpen) {
         if (!dbName || !version || !store) {
             window.console.error("Please specify dbname, version, store: usage open(dbName, version, store)");
             return;
@@ -13,7 +13,7 @@ window.db = window.db || {};
             var db = e.target.result,
                 objectStore;
             if (!db.objectStoreNames.contains(store)) {
-                objectStore = db.createObjectStore(store, {autoIncrement: true});
+                objectStore = db.createObjectStore(store, {keyPath: keyPath, autoIncrement: true});
                 indexes.forEach(function (index) {
                     objectStore.createIndex(index.name, index.name, typeof (index.constraint) === "object" ? index.constraint : {unique : false});
                 });
@@ -34,17 +34,23 @@ window.db = window.db || {};
     };
     
     exports.set = function (store, data, key, onsuccess) {
+        if (typeof (onsuccess) !== "function") {
+            return;
+        }
+        
         var objectStore = dbStore.transaction(store, "readwrite").objectStore(store),
-            r = objectStore.add(data, key);
+            r = objectStore.add(data);
+        
         r.onsuccess = function (e) {
-            if (typeof (onsuccess) === "function") {
-                onsuccess(e);
-            }
+            onsuccess(e);
         };
     };
     
     exports.get = function (store, key, onsuccess, onerror) {
         try {
+            if (typeof (onsuccess) !== "function") {
+                return;
+            }
             var objectStore = dbStore.transaction(store, "readonly").objectStore(store),
                 req = objectStore.get(key);
 
@@ -65,6 +71,9 @@ window.db = window.db || {};
     
     exports.getAll = function (store, onread, onerror) {
         try {
+            if (typeof (onread) !== "function") {
+                return;
+            }
             var objectStore = dbStore.transaction(store, "readonly").objectStore(store);
             objectStore.openCursor().onsuccess = function (e) {
                 var cursor = e.target.result;
@@ -81,15 +90,39 @@ window.db = window.db || {};
         }
     };
     
+    exports.put = function(store, key, update, onupdate, onerror) {
+        if(!store || !key || !update)
+            return;
+        try {
+            var objectStore = dbStore.transaction(store, "readwrite").objectStore(store);
+            var req = objectStore.get(key);
+            req.onsuccess = function (event) {
+                var obj = event.target.result,
+                    reqUpdate;
+                update(obj);
+                reqUpdate = objectStore.put(obj);
+                reqUpdate.onsuccess = function(e) {
+                    onupdate();
+                };
+            };
+        } catch(e) {
+            window.console.error(e);
+            if (typeof (onerror) === "function") {
+                onerror(e);
+            }
+        }
+    };
+    
     exports.getByProperty = function (store, property, value, onsuccess, onerror) {
+        if (typeof (onsuccess) !== "function") {
+            return;
+        }
         try {
             var objectStore = dbStore.transaction(store, "readonly").objectStore(store),
                 request = objectStore.index(property).get(value);
         
             request.onsuccess = function (e) {
-                if (typeof (onsuccess) === "function") {
-                    onsuccess(e.target.result);
-                }
+                onsuccess(e.target.result);
             };
 
             request.onerror = function (e) {
@@ -98,6 +131,25 @@ window.db = window.db || {};
         } catch (e) {
             window.console.error(e);
             if (typeof (onerror) === "function") {
+                onerror(e);
+            }
+        }
+    };
+    
+    exports.delete = function (store, key, ondelete, onerror) {
+        try {
+            var req = dbStore.transaction(store, "readwrite").objectStore(store).delete(key);
+            
+            req.onsuccess = function (e) {
+                ondelete(e.target.result);
+            };
+            
+            req.onerror = function (e) {
+                onerror(e);
+            };
+        } catch (e) {
+            window.console.error(e);
+            if(typeof (onerror) === "function") {
                 onerror(e);
             }
         }
