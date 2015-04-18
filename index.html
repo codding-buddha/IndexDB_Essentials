@@ -1,0 +1,72 @@
+<html>
+    <head>
+        <script type="text/javascript" src="script/support.js"></script>
+        <script type="text/javascript" src="script/basic_operations.js"></script>
+    </head>
+    <body>
+        <h1>IndexDBSupported : <span id="indexdb-support"></span></h1>
+        <h2>Customer</h2>
+        <div>
+            <label>First Name : </label><input type="text" id='fname' />
+            <label>Last Name : </label><input type="text" id='lname' />
+            <input type="button" value="Add" id="add"/>
+        </div>
+        <h2>From DB</h2>
+        <div>
+            <table id="value">
+            </table>
+            <input type="button" value="Refresh" id="refresh"/>
+        </div>
+        <script>
+            document.addEventListener('DOMContentLoaded', function () {
+                var dbName = "custDB";
+                var ver = 4;
+                var store = "customer1";
+                db.open(dbName, ver, store, [{name: "lastName", contraint: {unique: true}}]);
+                document.getElementById("indexdb-support").innerHTML = window.isIndexDBSupported ? "Yup" : "Nope";
+                if (isIndexDBSupported) {
+                    document.getElementById("add").onclick = function (e) {
+                        var c = getCustomer();
+                        db.set(store, c, c.lastName, function () {
+                            db.get(store, c.lastName, function(cust) {
+                                var cEle = createElement('tr');
+                                var firstName = createElement('td', cust.firstName);
+                                var lName = createElement('td', cust.lastName);
+                                cEle.appendChild(firstName);
+                                cEle.appendChild(lName);
+                                document.getElementById("value").appendChild(cEle);
+                            });
+                        });
+                    };
+                    
+                    document.getElementById('refresh').onclick = function (e) {
+                        var v  = document.getElementById('value');
+                        v.innerHTML = "";
+                        db.getAll(store, function(cust) {
+                            var c = createElement('tr');
+                            var firstName = createElement('td', cust.firstName);
+                            var lName = createElement('td', cust.lastName);
+                            c.appendChild(firstName);
+                            c.appendChild(lName);
+                            v.appendChild(c);
+                        });
+                    };
+                     
+                }
+                
+                var createElement = function (tag, value) {
+                    var node = document.createElement(tag);
+                    if(value)
+                        node.innerHTML = value;
+                    return node;
+                }
+              
+                var getCustomer = function () {
+                    var c = { 'firstName' : document.getElementById('fname').value,'lastName' : document.getElementById('lname').value};
+                    
+                    return c;                    
+                };
+            });
+        </script>
+    </body>
+</html>
